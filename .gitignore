@@ -31,6 +31,9 @@
 !instructions/karo.md
 !instructions/ashigaru.md
 !instructions/gunshi.md
+# Branch-specific extensions (aki-tweak)
+!instructions/gunshi_at.md
+!instructions/ashigaru_at.md
 
 # Multi-CLI: CLI-specific tool descriptions
 !instructions/cli_specific/

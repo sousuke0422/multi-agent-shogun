@@ -48,6 +48,7 @@ case "$AGENT_ID" in
 2. \`mcp__memory__read_graph\` でルール・嗜好・教訓を復元
 3. (shogun のみ) \`memory/MEMORY.md\` を Read
 4. \`instructions/${AGENT_ID}.md\` を最後まで必読 — persona・戦国口調・forbidden_actions 再確立 **(絶対省略禁止)**
+4.5. \`instructions/${AGENT_ID}_at.md\` が存在すれば読め（ブランチ固有拡張ルール）
 5. \`queue/\` 配下 (tasks/, inbox/, reports/) から state 再構築
 
 **Step 1-4 完了まで inbox 処理・ユーザ応答は禁止**。inbox{N} nudge が先に届いても無視し、persona 確立を優先せよ。
@@ -75,6 +76,7 @@ EOF
 2. タスクに \`project:\` があれば \`context/{project}.md\` を Read
 3. タスクに \`target_path:\` があれば対象ファイルを Read
 4. Step 1-3 完了後にタスク着手
+4.5. \`instructions/ashigaru_at.md\` が存在すれば Read（追加プロトコル確認、軽量）
 
 **Step 1-2 完了まで inbox 処理・ユーザ応答は禁止**。
 初回起動時は CLAUDE.md 自動ロード済み、instructions/ashigaru.md の再読は不要 (コスト節約)。
