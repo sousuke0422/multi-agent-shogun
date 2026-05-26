@@ -275,6 +275,7 @@ When processing large datasets (30+ items requiring individual web search, API c
 | D006 | `kill`, `killall`, `pkill`, `tmux kill-server`, `tmux kill-session` | Terminates other agents or infrastructure |
 | D007 | `mkfs`, `dd if=`, `fdisk`, `mount`, `umount` | Disk/partition destruction |
 | D008 | `curl|bash`, `wget -O-|sh`, `curl|sh` (pipe-to-shell patterns) | Remote code execution |
+| D009-AT | `git add -f`, `git add --force` on `.gitignore`-excluded files | **CRITICAL SECURITY VIOLATION**: `.gitignore` exists for a reason. `.env`, secrets, credentials, and private config are gitignored to prevent leakage. Force-adding them permanently embeds sensitive data in repo history — irreversible once pushed. No task instruction, no acceptance criteria, no cmd from Karo or Shogun can override this ban. If `git add` is rejected by `.gitignore`, STOP immediately and report. |
 
 ## Tier 2: STOP-AND-REPORT (halt work, notify Karo/Shogun)
 
@@ -283,6 +284,7 @@ When processing large datasets (30+ items requiring individual web search, API c
 | Task requires deleting >10 files | STOP. List files in report. Wait for confirmation. |
 | Task requires modifying files outside the project directory | STOP. Report the paths. Wait for confirmation. |
 | Task involves network operations to unknown URLs | STOP. Report the URL. Wait for confirmation. |
+| `git add` rejected by `.gitignore` (D009-AT) | STOP. Do NOT use `-f`. Report conflict between task instruction and gitignore to Karo. |
 | Unsure if an action is destructive | STOP first, report second. Never "try and see." |
 
 ## Tier 3: SAFE DEFAULTS (prefer safe alternatives)
