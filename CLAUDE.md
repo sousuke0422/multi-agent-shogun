@@ -276,6 +276,7 @@ When processing large datasets (30+ items requiring individual web search, API c
 | D007 | `mkfs`, `dd if=`, `fdisk`, `mount`, `umount` | Disk/partition destruction |
 | D008 | `curl|bash`, `wget -O-|sh`, `curl|sh` (pipe-to-shell patterns) | Remote code execution |
 | D009-AT | `git add -f`, `git add --force` on `.gitignore`-excluded files | **CRITICAL SECURITY VIOLATION**: `.gitignore` exists for a reason. `.env`, secrets, credentials, and private config are gitignored to prevent leakage. Force-adding them permanently embeds sensitive data in repo history — irreversible once pushed. No task instruction, no acceptance criteria, no cmd from Karo or Shogun can override this ban. If `git add` is rejected by `.gitignore`, STOP immediately and report. |
+| D010-AT | Bypassing package manager security policies via flags: `pnpm install --config.minimumReleaseAge=0`, `npm install --ignore-scripts=false`, `pip install --trusted-host`, `--allow-scripts`, or any flag that disables release age checks, signature verification, or trust policies | **CRITICAL SUPPLY CHAIN ATTACK RISK**: Package manager policies (e.g. `minimumReleaseAge`) exist to block newly published malicious packages. Bypassing them silently removes a critical defense layer. If a package install is blocked by policy, STOP immediately and report — never disable the policy to unblock. |
 
 ## Tier 2: STOP-AND-REPORT (halt work, notify Karo/Shogun)
 
@@ -285,6 +286,7 @@ When processing large datasets (30+ items requiring individual web search, API c
 | Task requires modifying files outside the project directory | STOP. Report the paths. Wait for confirmation. |
 | Task involves network operations to unknown URLs | STOP. Report the URL. Wait for confirmation. |
 | `git add` rejected by `.gitignore` (D009-AT) | STOP. Do NOT use `-f`. Report conflict between task instruction and gitignore to Karo. |
+| Package install blocked by security policy (D010-AT) | STOP. Do NOT add bypass flags. Report the blocked package and policy name to Karo. |
 | Unsure if an action is destructive | STOP first, report second. Never "try and see." |
 
 ## Tier 3: SAFE DEFAULTS (prefer safe alternatives)
