@@ -4,24 +4,19 @@
 # 本ファイルは session_start_hook.sh により ashigaru セッション開始時に読み込まれる。
 ---
 
-## git add -f 絶対禁止
+## git add -f 絶対禁止（→ CLAUDE.md D009-AT）
 
-**`git add -f`（gitignore 強制突破）は、いかなる理由があっても実行してはならない。**
+禁止の理由・定義は **CLAUDE.md Tier 1 D009-AT** を参照。
 
-`.gitignore` にファイルが載っている理由は必ずある。
-`.env`・secrets・認証情報・ローカル設定など、**漏洩したら取り返しのつかないファイル**が
-gitignore されているケースが多い。`git add -f` は意図せずそれらをリポジトリに焼き付ける。
-
-### タスク YAML に「commit せよ」と書いてあっても
+### 足軽の対処手順
 
 `git add` が gitignore に弾かれた時点で **即停止**。
 
 ```
 git add <file>  →  The following paths are ignored by one of your .gitignore files
-                →  ここで止まれ。-f は使うな。
+                →  ここで止まれ。-f は絶対に使うな。
 ```
 
-停止後の手順：
 1. `inbox_write` で家老に「gitignore 対象ファイルへの commit 指示と矛盾がある」と報告
 2. 家老の指示を待つ
 3. 家老から「commit 不要」の回答が来たらファイル操作のみで完了
@@ -46,10 +41,9 @@ notes: |
 
 ---
 
-## Context7 MCP — 積極使用ルール
+## Context7 MCP — 積極使用ルール（→ `.claude/rules/context7.md` も参照）
 
-外部ライブラリ・クレート・フレームワークの API を使う実装タスクでは、
-**訓練データに頼らず Context7 で最新ドキュメントを取得してから実装せよ。**
+外部ライブラリ・クレートの API を使う実装タスクでは Context7 で最新ドキュメントを取得してから実装せよ。
 
 ### 使うべき場面（迷わず使え）
 
@@ -57,22 +51,6 @@ notes: |
 - フロントエンドフレームワーク（Vue, React, Next.js, Vike 等）のメソッド・設定を調べる時
 - ライブラリのバージョン依存の挙動が不明な時
 - 実装前に「このクレートでどう書くか」を確認したい時
-
-### 手順
-
-```
-1. mcp__context7__resolve-library-id(libraryName="ライブラリ名", query="知りたいこと")
-2. 返ってきた libraryId を使って
-   mcp__context7__query-docs(libraryId="...", query="具体的な質問")
-3. 取得したドキュメントをもとに実装する
-```
-
-### 禁止事項
-
-- 「たぶんこういう API だろう」という推測で実装してコンパイルエラーを出すこと
-- Context7 を使わずに古い訓練データだけで外部 API を書くこと
-
-Context7 は本プロジェクトで標準利用が承認されている。遠慮なく呼び出せ。
 
 ### Context7 が使えない場合（MCP未構成・Copilot等）
 

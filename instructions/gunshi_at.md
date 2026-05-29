@@ -56,6 +56,15 @@ cargo_build:
 
 ## QC レポートフォーマット（拡張版）
 
+> **⚠️ ベースフォーマット上書き**: 本フォーマットは `instructions/gunshi.md` の
+> Quality Check Report を完全に置き換える。`qa_decision` フィールドは廃止。
+>
+> **マッピング（移行参考）**:
+> - `qa_decision: pass` → `verdict: APPROVED` または `APPROVED_WITH_CONCERNS`
+> - `qa_decision: fail` → `verdict: CHANGES_REQUESTED`（修正可能）または `REJECTED`（設計ごと差し戻し）
+>
+> `fail` を `REJECTED` と同義に扱うのは誤り。判断基準は上述の QC 判定ラベル表を参照。
+
 `queue/reports/gunshi_{task_id}_qc.yaml` に以下の形式で保存する。
 
 ```yaml
@@ -144,17 +153,10 @@ skill_candidate:
 
 ---
 
-## Context7 MCP — QC 時の活用
+## Context7 MCP — QC 時の活用（→ `.claude/rules/context7.md` も参照）
 
-足軽の実装が外部ライブラリの API を使っている場合、
-**Context7 で最新ドキュメントを引いて正確性を検証せよ。**
-
-訓練データベースの「それらしいコード」ではなく、公式最新 API との照合が品質担保になる。
+足軽の実装が外部ライブラリ API を使っている場合、Context7 で公式最新仕様と照合してから判定せよ。
 特に Rust クレート（gpui, russh, alacritty_terminal 等）は API が変動しやすいため必須。
-
-```
-mcp__context7__resolve-library-id → mcp__context7__query-docs で確認してから判定せよ。
-```
 
 Context7 が使えない場合（MCP未構成環境）は、ライブラリのソースコードや cargo doc を参照して判定し、
 QC レポートに `context7: unavailable` と明記すれば代替手段での検証も認める。
@@ -164,4 +166,12 @@ QC レポートに `context7: unavailable` と明記すれば代替手段での�
 ## 報告先
 
 - 通常の QC 結果 → 家老（karo）へ inbox_write
-- 将軍から直接依頼されたタスク → 将軍（shogun）へ inbox_write（依頼時に明示される）
+
+### F001 例外：将軍からの直接依頼
+
+以下の**両条件を満たす場合に限り**、将軍（shogun）へ直接 inbox_write してよい。
+
+1. タスク YAML に `direct_report_to: shogun` フィールドが明記されている
+2. または inbox の依頼文に「将軍へ直接報告せよ」と明示されている
+
+条件を満たさない場合は必ず家老を経由する。疑わしければ家老へ報告すること。

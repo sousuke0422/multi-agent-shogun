@@ -751,6 +751,22 @@ bash scripts/inbox_write.sh <target_agent> "<message>" <type> <from>
 | `.cursor/rules/` | 追加ルール（Always Apply タイプ） |
 | `.cursor/skills/` | スキル定義（起動時に自動ロード） |
 
+## MCP ツール呼び出し構文
+
+Cursor Agent の MCP 呼び出し構文は Claude Code と異なる（`__` → `_`）。
+
+| 用途 | Claude Code | Cursor Agent |
+|------|-------------|--------------|
+| Context7: ライブラリ ID 解決 | `mcp__context7__resolve-library-id` | `mcp_context7_resolve-library-id` |
+| Context7: ドキュメント取得 | `mcp__context7__query-docs` | `mcp_context7_query-docs` |
+| Memory: グラフ読み込み | `mcp__memory__read_graph` | `mcp_memory_read_graph` |
+| Memory: エンティティ作成 | `mcp__memory__create_entities` | `mcp_memory_create_entities` |
+
+**パターン**: `mcp__server__tool`（Claude Code）→ `mcp_server_tool`（Cursor）。セパレータがダブルからシングルになるだけ。
+
+**検証済み（2026-05-28）**: Context7 `resolve-library-id` / `query-docs` 動作確認済み。
+Memory MCP も同パターンで動作すると推定（未検証）。
+
 ## 利用可能なツール
 
 Cursor Agent は以下のツールを提供する：

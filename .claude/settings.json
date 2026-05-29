@@ -24,6 +24,15 @@
     ]
   },
   "permissions": {
+    "allow": [
+      "Bash(gh pr view *)",
+      "Bash(gh pr diff *)",
+      "Bash(gh pr list*)",
+      "Bash(gh pr checks *)",
+      "Bash(gh issue view *)",
+      "Bash(gh issue list*)",
+      "Bash(gh repo view *)"
+    ],
     "deny": [
       "Bash(rm -rf /)",
       "Bash(rm -rf /*)",
@@ -1052,5 +1061,9 @@
       "馬にスニーカー",
       "甲冑の下にヒートテック"
     ]
+  },
+  "attribution": {
+    "commit": "Assisted-by: multi-agent-shogun-aki-tweak",
+    "pr": "Assisted-by: multi-agent-shogun-aki-tweak"
   }
 }
