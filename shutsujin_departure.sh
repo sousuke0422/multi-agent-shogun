@@ -735,19 +735,11 @@ with open(f,'w') as fh: yaml.safe_dump(d, fh, default_flow_style=False, allow_un
     log_info "  └─ 家老（${_karo_display}）、召喚完了"
 
     if [ "$KESSEN_MODE" = true ]; then
-        # 決戦の陣: CLI Adapter経由（claudeはOpus強制）
+        # 決戦の陣: CLI設定に関わらず全足軽をClaude Opus強制
         for i in $(seq 1 "$_ASHIGARU_COUNT"); do
             p=$((PANE_BASE + i))
             _ashi_cli_type="claude"
             _ashi_cmd="claude --model opus --effort max $PERMISSION_FLAG"
-            if [ "$CLI_ADAPTER_LOADED" = true ]; then
-                _ashi_cli_type=$(get_cli_type "ashigaru${i}")
-                if [ "$_ashi_cli_type" = "claude" ]; then
-                    _ashi_cmd="claude --model opus --effort max $PERMISSION_FLAG"
-                else
-                    _ashi_cmd=$(build_cli_command "ashigaru${i}")
-                fi
-            fi
             tmux set-option -p -t "multiagent:agents.${p}" @agent_cli "$_ashi_cli_type"
             tmux send-keys -t "multiagent:agents.${p}" "$_ashi_cmd"
             tmux send-keys -t "multiagent:agents.${p}" Enter
