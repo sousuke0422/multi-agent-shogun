@@ -106,6 +106,12 @@ result:
 
 ---
 
+## D010-AT — QC での supply-chain ポリシー迂回検出（→ CLAUDE.md D010-AT）
+
+軍師は QC 時、足軽の report とコマンド履歴から **パッケージマネージャセキュリティポリシーの迂回**（`minimumReleaseAge=0`、`--trusted-host`、`--allow-scripts` 等）を検出せよ。検出時は `CHANGES_REQUESTED`（blocking: D010-AT 違反）。詳細は **CLAUDE.md Tier 1 D010-AT** を参照。
+
+---
+
 ## D011-AT — QC での無記録導入検出（→ CLAUDE.md D011-AT）
 
 軍師は QC 時、足軽の report と実装差分から **無断ツールチェイン/リモートコード導入** を検出せよ。

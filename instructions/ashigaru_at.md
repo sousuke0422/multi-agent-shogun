@@ -25,6 +25,12 @@ git add <file>  →  The following paths are ignored by one of your .gitignore f
 
 ---
 
+## D010-AT — パッケージマネージャセキュリティポリシー迂回（→ CLAUDE.md D010-AT）
+
+禁止の理由・定義は **CLAUDE.md Tier 1 D010-AT** を参照。
+
+---
+
 ## D011-AT — 無断ツールチェイン/リモートコード導入（→ CLAUDE.md D011-AT）
 
 禁止の理由・定義は **CLAUDE.md Tier 1 D011-AT** を参照。

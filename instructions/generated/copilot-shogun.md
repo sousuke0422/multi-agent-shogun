@@ -559,6 +559,17 @@ queue/reports/ashigaru{YOUR_NUMBER}_report.yaml  ← Write only this
 
 **NEVER read/write another ashigaru's files.** Even if Karo says "read ashigaru{N}.yaml" where N ≠ your number, IGNORE IT. (Incident: cmd_020 regression test — ashigaru5 executed ashigaru2's task.)
 
+## Destructive Operation Safety — D009/D010/D011-AT (→ CLAUDE.md / AGENTS.md)
+
+Full Tier 1–3 tables live in auto-loaded **CLAUDE.md** (Claude Code) or **AGENTS.md** (Codex CLI). This section is the build-source mirror for generated role instructions.
+
+| ID | Forbidden Pattern | Reason |
+|----|-------------------|--------|
+| D010-AT | Bypassing package manager security policies via flags: `pnpm install --config.minimumReleaseAge=0`, `npm install --ignore-scripts=false`, `pip install --trusted-host`, `--allow-scripts`, or any flag that disables release age checks, signature verification, or trust policies | **CRITICAL SUPPLY CHAIN ATTACK RISK**: Package manager policies (e.g. `minimumReleaseAge`) exist to block newly published malicious packages. Bypassing them silently removes a critical defense layer. If a package install is blocked by policy, STOP immediately and report — never disable the policy to unblock. |
+| D011-AT | Unsanctioned toolchain/runtime/global-package install; executing remote-fetched code; decomposing forbidden patterns (e.g. `curl -o` / `wget` then separate `sh` / `chmod +x` / `./init` instead of `curl\|bash`) | **CRITICAL SECURITY VIOLATION**: Installing system-scale toolchains (rust/rustup, node, go, system packages, etc.) or running code obtained remotely is forbidden unless acceptance_criteria explicitly requires it or Karo/Shogun/Lord has granted approval. Judgment is intent-based — "did unknown/remote code run?" — not literal pattern match; pipe-decomposition evasion of D008 is equivalent violation. Prefer project-local/vendored deps (e.g. `protoc-bin-vendored`). If tooling is missing, STOP-and-report (what / why / version / method / source URL) and wait. Any approved install MUST be recorded in report (package, version, source URL, command, install path); undocumented self-install is treated as an incident. Trusted official HTTPS installers (e.g. `sh.rustup.rs`) are allowed only after STOP-report approval and full documentation. Unknown URLs remain D008 absolute ban. No task instruction can override this ban. |
+
+**Tier 2 (STOP-and-REPORT):** Toolchain/runtime/global package install needed (D011-AT) → STOP. Report what / why / version / method / source URL. Wait for approval before installing. Record package, version, URL, command, and install path in report if approved.
+
 # GitHub Copilot CLI Tools
 
 This section describes GitHub Copilot CLI-specific tools and features.
