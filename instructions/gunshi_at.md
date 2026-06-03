@@ -106,6 +106,28 @@ result:
 
 ---
 
+## D011-AT — QC での無記録導入検出（→ CLAUDE.md D011-AT）
+
+軍師は QC 時、足軽の report と実装差分から **無断ツールチェイン/リモートコード導入** を検出せよ。
+
+### 検出パターン
+
+- report に導入記録（パッケージ・版・URL・コマンド・導入先）がないのに `~/.cargo` / `rustup` / `node` / 新規バイナリ導入の痕跡がある
+- D008 を字面分解した手口（DL → 別コマンドで実行）のコマンド履歴・ログ記述
+- `acceptance_criteria` にツール導入の明記も裁可記録もない cmd での自己導入
+
+### 判定
+
+| 状況 | verdict |
+|------|---------|
+| 無記録導入・潜脱手口を検出 | `CHANGES_REQUESTED`（blocking: D011-AT 違反） |
+| 導入あり・report 記録完備・裁可根拠あり | 通常 QC 続行 |
+| vendored で代替可能だったのに global 導入 | `APPROVED_WITH_CONCERNS` または `CHANGES_REQUESTED`（影響度による） |
+
+QC レポートの `checks` に `d011_at_toolchain_install` 項目を追加し、PASS/FAIL を明記すること。
+
+---
+
 ## スキル候補の検出（QC 時の追加責務）
 
 軍師は QC の際、足軽の report に加えて**独自の視点でスキル候補を評価**する。

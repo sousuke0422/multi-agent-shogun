@@ -25,6 +25,23 @@ git add <file>  →  The following paths are ignored by one of your .gitignore f
 
 ---
 
+## D011-AT — 無断ツールチェイン/リモートコード導入（→ CLAUDE.md D011-AT）
+
+禁止の理由・定義は **CLAUDE.md Tier 1 D011-AT** を参照。
+
+### 足軽の対処手順
+
+1. **導入前に止まれ** — `acceptance_criteria` に明記 or 家老・将軍の明示裁可がない限り、
+   rust/rustup・node・go・system package 等の導入、およびリモート取得コードの実行は禁止。
+2. **潜脱禁止** — `curl|bash` を `curl -o` → 別途 `sh` / `chmod +x` / `./init` に分解しても D008 同等違反。
+   判定は字面ではなく「未知/リモートのコードを実行したか」。
+3. **vendored 優先** — 可能な限り project-local / vendored（cmd_232 の `protoc-bin-vendored` を範とせよ）。
+4. **不足時は STOP** — ツール不在なら作業を止め、report に「何を・なぜ・版・方法・取得元 URL」を記録し裁可待ち。
+5. **導入したら必須記録** — 裁可後に導入した場合、パッケージ名・版・取得元 URL・導入コマンド・導入先を report に明記。
+   無記録の自己導入は事故扱い。
+
+---
+
 ## task YAML 内の混在記述への対処
 
 自分の `task_id` に対応するブロック以外の cmd 記述が YAML 内に混在している場合：
