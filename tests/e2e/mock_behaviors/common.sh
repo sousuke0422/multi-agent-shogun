@@ -6,6 +6,29 @@ set -euo pipefail
 
 # ─── YAML helpers (python3-yaml based) ───
 
+# Portable lock helper for tests.
+# macOS runners do not provide `flock`, so use a mkdir sentinel instead.
+_mock_acquire_lock() {
+    local lockfile="$1"
+    local lockdir="${lockfile}.d"
+    local i=0
+
+    while ! mkdir "$lockdir" 2>/dev/null; do
+        sleep 0.1
+        i=$((i + 1))
+        if [ "$i" -ge 300 ]; then
+            return 1
+        fi
+    done
+
+    return 0
+}
+
+_mock_release_lock() {
+    local lockfile="$1"
+    rmdir "${lockfile}.d" 2>/dev/null || true
+}
+
 # Read a YAML field value
 # Usage: yaml_read <file> <dotted.key.path>
 yaml_read() {
@@ -42,14 +65,19 @@ except Exception:
     return 1
 }
 
-# Update a YAML field value (atomic write with flock)
+# Update a YAML field value (atomic write with portable lock)
 # Usage: yaml_update <file> <dotted.key.path> <value>
 yaml_update() {
     local file="$1" key_path="$2" value="$3"
     local lockfile="${file}.lock"
+    local status=0
+
+    if ! _mock_acquire_lock "$lockfile"; then
+        echo "[mock] lock timeout on $file" >&2
+        return 1
+    fi
 
     (
-        flock -w 5 200 || { echo "[mock] flock timeout on $file" >&2; return 1; }
         python3 -c "
 import yaml, os, tempfile
 try:
@@ -74,7 +102,10 @@ try:
 except Exception as e:
     print(f'yaml_update error: {e}', file=__import__('sys').stderr)
 " 2>/dev/null
-    ) 200>"$lockfile"
+    )
+    status=$?
+    _mock_release_lock "$lockfile"
+    return "$status"
 }
 
 # Mark all inbox messages as read
@@ -82,9 +113,14 @@ except Exception as e:
 inbox_mark_all_read() {
     local inbox_file="$1"
     local lockfile="${inbox_file}.lock"
+    local status=0
+
+    if ! _mock_acquire_lock "$lockfile"; then
+        echo "[mock] lock timeout on $inbox_file" >&2
+        return 1
+    fi
 
     (
-        flock -w 5 200 || return 1
         python3 -c "
 import yaml, os, tempfile
 try:
@@ -99,7 +135,10 @@ try:
 except Exception as e:
     print(f'inbox_mark_all_read error: {e}', file=__import__('sys').stderr)
 " 2>/dev/null
-    ) 200>"$lockfile"
+    )
+    status=$?
+    _mock_release_lock "$lockfile"
+    return "$status"
 }
 
 # Get count of unread inbox messages
