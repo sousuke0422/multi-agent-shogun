@@ -985,13 +985,13 @@ cli:
     ashigaru1:
       type: codex
       model: gpt-5.5
-      profile: opencode-go-flash
+      profile: opencode-go
 YAML
     mkdir -p "${TEST_TMP}/codex_home"
     cat > "${TEST_TMP}/codex_home/config.toml" << 'TOML'
 # base config intentionally empty for this test
 TOML
-    cat > "${TEST_TMP}/codex_home/opencode-go-flash.config.toml" << 'TOML'
+    cat > "${TEST_TMP}/codex_home/opencode-go.config.toml" << 'TOML'
 model = "opencode-go/deepseek-v4-flash"
 model_provider = "opencode_go"
 
@@ -1007,7 +1007,7 @@ TOML
     load_adapter_with "${TEST_TMP}/settings_codex_profile.yaml"
     result=$(build_cli_command "ashigaru1")
 
-    [[ "$result" == codex\ -p\ opencode-go-flash* ]]
+    [[ "$result" == codex\ -p\ opencode-go* ]]
     [[ "$result" == *"--search --dangerously-bypass-approvals-and-sandbox --no-alt-screen"* ]]
     [[ "$result" != *"--model"* ]]
     [[ "$result" != *"-c model_provider"* ]]

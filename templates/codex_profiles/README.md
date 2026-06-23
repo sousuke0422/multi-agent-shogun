@@ -7,7 +7,7 @@ cli:
   agents:
     ashigaru1:
       type: codex
-      profile: opencode-go-flash
+      profile: opencode-go
 ```
 
 The runtime command is `codex -p <profile>`. Do not inject `model_provider` with `-c`, and do not generate a shim TOML as the runtime source of truth.
