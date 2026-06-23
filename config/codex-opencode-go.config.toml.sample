@@ -1,0 +1,18 @@
+# Copy to "$CODEX_HOME/opencode_go.config.toml".
+# Keep OPENCODE_GO_API_KEY in the environment; never write it here.
+
+model = "deepseek-v4-flash"
+model_provider = "opencode_go_relay"
+
+[model_providers.opencode_go_relay]
+name = "opencode_go_relay"
+base_url = "http://127.0.0.1:4446/v1"
+env_key = "OPENCODE_GO_API_KEY"
+wire_api = "responses"
+
+[model_properties."deepseek-v4-flash"]
+context_window = 262144
+max_context_window = 262144
+supports_parallel_tool_calls = true
+supports_reasoning_summaries = false
+input_modalities = ["text"]

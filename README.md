@@ -621,6 +621,18 @@ Do not put API keys in `config/settings.yaml`, `config/opencode-tui.json`, or `.
 
 When OpenCode is selected, `lib/cli_adapter.sh` launches it with `--agent <agent_id>` and the repository-pinned `OPENCODE_TUI_CONFIG=config/opencode-tui.json`. The TUI command does not accept `--variant`; if `variant:` is configured, `scripts/build_instructions.sh` and `scripts/switch_cli.sh` synchronize `model:` / `variant:` into a git-ignored `.opencode/agents/<agent_id>-runtime.md`, which OpenCode loads via `--agent <agent_id>-runtime`.
 
+Codex can also be routed through an operator-owned profile instead of a model flag:
+
+```yaml
+cli:
+  agents:
+    ashigaru1:
+      type: codex
+      profile: opencode_go
+```
+
+For opencode-go through `codex-relay`, keep the endpoint and `wire_api = "responses"` in `$CODEX_HOME/opencode_go.config.toml`, using `config/codex-opencode-go.config.toml.sample` as the tracked template. Keep `OPENCODE_GO_API_KEY` in the shell environment only. See `docs/codex_relay_opencode_go.md`.
+
 To switch on the fly, use `scripts/switch_cli.sh`:
 
 ```bash
