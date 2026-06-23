@@ -67,7 +67,7 @@ _cli_adapter_read_yaml() {
     local key_path="$1"
     local fallback="${2:-}"
     local result
-    result=$("$CLI_ADAPTER_PROJECT_ROOT/.venv/bin/python3" -c "
+    result=$("$(_cli_adapter_python)" -c "
 import yaml, sys
 try:
     with open('${CLI_ADAPTER_SETTINGS}') as f:
@@ -113,7 +113,7 @@ _cli_adapter_shell_quote() {
 _cli_adapter_get_agent_env_prefix() {
     local agent_id="$1"
     local result
-    result=$("$CLI_ADAPTER_PROJECT_ROOT/.venv/bin/python3" -c "
+    result=$("$(_cli_adapter_python)" -c "
 import yaml, shlex, sys
 try:
     with open('${CLI_ADAPTER_SETTINGS}') as f:
@@ -131,6 +131,98 @@ except Exception:
     pass
 " 2>/dev/null)
     echo "${result:-}"
+}
+
+# _cli_adapter_python
+# Prefer the project venv when available, but allow tests/worktrees without .venv.
+_cli_adapter_python() {
+    local venv_python="$CLI_ADAPTER_PROJECT_ROOT/.venv/bin/python3"
+    if [[ -x "$venv_python" ]]; then
+        echo "$venv_python"
+    elif command -v python3 &>/dev/null; then
+        command -v python3
+    else
+        echo "$venv_python"
+    fi
+}
+
+# _cli_adapter_validate_codex_profile profile
+# Validate Codex profile TOML before launching `codex -p <profile>`.
+_cli_adapter_validate_codex_profile() {
+    local profile="$1"
+
+    if [[ ! "$profile" =~ ^[A-Za-z0-9_-]+$ ]]; then
+        echo "[ERROR] Invalid Codex profile name: '$profile' (allowed: A-Z a-z 0-9 _ -)" >&2
+        return 1
+    fi
+
+    local codex_home="${CODEX_HOME:-$HOME/.codex}"
+    local python_bin
+    python_bin=$(_cli_adapter_python)
+
+    CODEX_PROFILE="$profile" CODEX_HOME_DIR="$codex_home" "$python_bin" - <<'PY'
+import os
+import sys
+from pathlib import Path
+
+try:
+    import tomllib
+except Exception:
+    print("[ERROR] Python tomllib is required to validate Codex profiles", file=sys.stderr)
+    sys.exit(1)
+
+profile = os.environ["CODEX_PROFILE"]
+codex_home = Path(os.environ["CODEX_HOME_DIR"]).expanduser()
+base_path = codex_home / "config.toml"
+profile_path = codex_home / f"{profile}.config.toml"
+
+def load_toml(path):
+    if not path.exists():
+        return {}
+    with path.open("rb") as f:
+        return tomllib.load(f) or {}
+
+if not profile_path.exists():
+    print(f"[ERROR] Codex profile TOML not found: {profile_path}", file=sys.stderr)
+    sys.exit(1)
+
+try:
+    base_cfg = load_toml(base_path)
+    profile_cfg = load_toml(profile_path)
+except Exception as exc:
+    print(f"[ERROR] Failed to read Codex profile TOML for '{profile}': {exc}", file=sys.stderr)
+    sys.exit(1)
+
+model = profile_cfg.get("model")
+provider = profile_cfg.get("model_provider")
+if not model:
+    print(f"[ERROR] Codex profile '{profile}' missing top-level model", file=sys.stderr)
+    sys.exit(1)
+if not provider:
+    print(f"[ERROR] Codex profile '{profile}' missing top-level model_provider", file=sys.stderr)
+    sys.exit(1)
+
+profile_providers = profile_cfg.get("model_providers") or {}
+base_providers = base_cfg.get("model_providers") or {}
+provider_cfg = {}
+if isinstance(profile_providers, dict):
+    provider_cfg = profile_providers.get(provider) or {}
+if not provider_cfg and isinstance(base_providers, dict):
+    provider_cfg = base_providers.get(provider) or {}
+if not isinstance(provider_cfg, dict) or not provider_cfg:
+    print(f"[ERROR] Codex profile '{profile}' missing model_providers.{provider}", file=sys.stderr)
+    sys.exit(1)
+
+for key in ("base_url", "env_key", "wire_api"):
+    if not provider_cfg.get(key):
+        print(f"[ERROR] Codex profile '{profile}' provider '{provider}' missing {key}", file=sys.stderr)
+        sys.exit(1)
+
+env_key = str(provider_cfg["env_key"])
+if not os.environ.get(env_key):
+    print(f"[ERROR] Codex profile '{profile}' requires env var {env_key}", file=sys.stderr)
+    sys.exit(1)
+PY
 }
 
 # _cli_adapter_is_valid_cli cli_type
@@ -157,7 +249,7 @@ get_cli_type() {
     fi
 
     local result
-    result=$("$CLI_ADAPTER_PROJECT_ROOT/.venv/bin/python3" -c "
+    result=$("$(_cli_adapter_python)" -c "
 import yaml, sys
 try:
     with open('${CLI_ADAPTER_SETTINGS}') as f:
@@ -231,9 +323,20 @@ build_cli_command() {
             cmd="$cmd $permission_flag"
             ;;
         codex)
-            cmd="codex"
-            if [[ -n "$model" ]]; then
-                cmd="$cmd --model $model"
+            local profile
+            profile=$(_cli_adapter_read_yaml "cli.agents.${agent_id}.profile" "")
+            if [[ -n "$profile" ]]; then
+                if ! _cli_adapter_validate_codex_profile "$profile"; then
+                    return 1
+                fi
+                local quoted_profile
+                quoted_profile=$(_cli_adapter_shell_quote "$profile")
+                cmd="codex -p $quoted_profile"
+            else
+                cmd="codex"
+                if [[ -n "$model" ]]; then
+                    cmd="$cmd --model $model"
+                fi
             fi
             cmd="$cmd --search --dangerously-bypass-approvals-and-sandbox --no-alt-screen"
             ;;

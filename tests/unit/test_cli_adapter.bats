@@ -976,3 +976,70 @@ YAML
     [[ "$result" != MAX_THINKING_TOKENS* ]]
     [[ "$result" == codex* ]]
 }
+
+@test "build_cli_command: codex profile → codex -p profile（-c注入なし）" {
+    cat > "${TEST_TMP}/settings_codex_profile.yaml" << 'YAML'
+cli:
+  default: claude
+  agents:
+    ashigaru1:
+      type: codex
+      model: gpt-5.5
+      profile: opencode-go-flash
+YAML
+    mkdir -p "${TEST_TMP}/codex_home"
+    cat > "${TEST_TMP}/codex_home/config.toml" << 'TOML'
+# base config intentionally empty for this test
+TOML
+    cat > "${TEST_TMP}/codex_home/opencode-go-flash.config.toml" << 'TOML'
+model = "opencode-go/deepseek-v4-flash"
+model_provider = "opencode_go"
+
+[model_providers.opencode_go]
+name = "opencode_go"
+base_url = "https://api.opencode.example/zen/go/v1"
+env_key = "OPENCODE_GO_API_KEY"
+wire_api = "chat"
+TOML
+    export CODEX_HOME="${TEST_TMP}/codex_home"
+    export OPENCODE_GO_API_KEY="dummy"
+
+    load_adapter_with "${TEST_TMP}/settings_codex_profile.yaml"
+    result=$(build_cli_command "ashigaru1")
+
+    [[ "$result" == codex\ -p\ opencode-go-flash* ]]
+    [[ "$result" == *"--search --dangerously-bypass-approvals-and-sandbox --no-alt-screen"* ]]
+    [[ "$result" != *"--model"* ]]
+    [[ "$result" != *"-c model_provider"* ]]
+    [[ "$result" != *"dummy"* ]]
+}
+
+@test "build_cli_command: codex profile env欠如 → 失敗" {
+    cat > "${TEST_TMP}/settings_codex_profile.yaml" << 'YAML'
+cli:
+  default: claude
+  agents:
+    ashigaru1:
+      type: codex
+      profile: fugu
+YAML
+    mkdir -p "${TEST_TMP}/codex_home"
+    cat > "${TEST_TMP}/codex_home/fugu.config.toml" << 'TOML'
+model = "fugu"
+model_provider = "sakana_fugu"
+
+[model_providers.sakana_fugu]
+name = "sakana_fugu"
+base_url = "https://api.sakana.example/v1"
+env_key = "SAKANA_FUGU_API_KEY"
+wire_api = "chat"
+TOML
+    export CODEX_HOME="${TEST_TMP}/codex_home"
+    unset SAKANA_FUGU_API_KEY
+
+    load_adapter_with "${TEST_TMP}/settings_codex_profile.yaml"
+    run build_cli_command "ashigaru1"
+
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"SAKANA_FUGU_API_KEY"* ]]
+}
