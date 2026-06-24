@@ -625,6 +625,18 @@ APIキーを `config/settings.yaml`、`config/opencode-tui.json`、`.opencode/ag
 
 OpenCode 選択時は `lib/cli_adapter.sh` が `--agent <agent_id>` と、リポジトリ固定の `OPENCODE_TUI_CONFIG=config/opencode-tui.json` を付けて起動します。OpenCode TUI 起動コマンドは `--variant` を受け付けないため、対象agentに `variant:` があれば `scripts/build_instructions.sh` と `scripts/switch_cli.sh` が `model:` / `variant:` を git-ignored の `.opencode/agents/<agent_id>-runtime.md` に同期し、OpenCode が `--agent <agent_id>-runtime` 経由で読み込みます。
 
+Codex は model flag ではなく、運用者が管理する profile へルーティングできます：
+
+```yaml
+cli:
+  agents:
+    ashigaru1:
+      type: codex
+      profile: opencode_go
+```
+
+opencode-go を `codex-relay` 経由で使う場合、endpoint と `wire_api = "responses"` は `$CODEX_HOME/opencode_go.config.toml` に置き、tracked template は `config/codex-opencode-go.config.toml.sample` を使います。`OPENCODE_GO_API_KEY` はシェル環境変数だけに置きます。詳細は `docs/codex_relay_opencode_go.md` を参照してください。
+
 途中で切り替えたい場合は `scripts/switch_cli.sh` を使います：
 
 ```bash

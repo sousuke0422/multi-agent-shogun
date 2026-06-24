@@ -1,0 +1,12 @@
+# Codex profile template for Fugu/Sakana.
+# Copy to $CODEX_HOME/fugu.config.toml and set SAKANA_FUGU_API_KEY in the environment.
+# Fugu is not approved for finance workloads; keep model name in finance.exclude_models.
+
+model = "fugu"
+model_provider = "sakana_fugu"
+
+[model_providers.sakana_fugu]
+name = "sakana_fugu"
+base_url = "https://api.sakana.ai/v1"
+env_key = "SAKANA_FUGU_API_KEY"
+wire_api = "chat"

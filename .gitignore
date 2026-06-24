@@ -89,6 +89,7 @@
 # Config (sample files only, no secrets)
 !config/
 !config/ntfy_auth.env.sample
+!config/codex-opencode-go.config.toml.sample
 !config/opencode-tui.json
 !config/opencode-permissions.yaml
 
@@ -136,6 +137,8 @@ logs/
 
 # Docs
 !docs/
+!docs/codex_relay_opencode_go.md
+!docs/design_responses_chat_bridge.md
 !docs/philosophy.md
 !docs/vps_pr118_verification_plan.md
 
