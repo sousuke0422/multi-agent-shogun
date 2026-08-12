@@ -60,6 +60,7 @@
 !lib/ntfy_auth.sh
 !lib/agent_status.sh
 !lib/agent_registry.sh
+!lib/stale_task_detect.sh
 
 # Multi-CLI: Codex auto-load file
 !AGENTS.md
@@ -108,6 +109,7 @@
 !scripts/inbox_write.sh
 !scripts/inbox_watcher.sh
 !scripts/watcher_supervisor.sh
+!scripts/stale_task_scan.sh
 !scripts/ntfy.sh
 !scripts/ntfy_listener.sh
 !scripts/build_instructions.sh

@@ -81,6 +81,23 @@ start_all_watchers() {
     done < <(watcher_specs)
 }
 
+# assigned 沈黙検知: 60秒に1回（inbox_watcher を肥大化させない）
+STALE_SCAN_INTERVAL_SEC=60
+_last_stale_scan_epoch=0
+
+maybe_run_stale_scan() {
+    local now
+    now=$(date +%s)
+    if [ "$((now - _last_stale_scan_epoch))" -lt "$STALE_SCAN_INTERVAL_SEC" ]; then
+        return 0
+    fi
+    _last_stale_scan_epoch=$now
+    if [ -f "$SCRIPT_DIR/scripts/stale_task_scan.sh" ]; then
+        bash "$SCRIPT_DIR/scripts/stale_task_scan.sh" || \
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] [WARN] stale_task_scan failed" >&2
+    fi
+}
+
 if [ "${1:-}" = "--print-watchers" ]; then
     watcher_specs
     exit 0
@@ -88,5 +105,6 @@ fi
 
 while true; do
     start_all_watchers
+    maybe_run_stale_scan
     sleep 5
 done
