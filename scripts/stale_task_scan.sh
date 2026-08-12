@@ -62,16 +62,15 @@ stale_scan_once() {
         last_activity=$(stale_last_activity_epoch "$assigned_epoch" "$report_mtime" "$task_mtime")
         silence=$(stale_silence_seconds "$last_activity" "$NOW_EPOCH")
 
-        if ! pane_target=$(agent_registry_pane_for_agent "$agent" "$pane_base" 2>/dev/null); then
-            continue
-        fi
-
-        cli=$(tmux show-options -p -t "$pane_target" -v @agent_cli 2>/dev/null || echo "")
-        busy_rc=1
-        agent_is_busy_check "$pane_target" "$cli" || busy_rc=$?
-
+        pane_target=""
+        busy_rc=2
         pane_text=""
-        pane_text=$(timeout 2 tmux capture-pane -t "$pane_target" -p 2>/dev/null || true)
+        if pane_target=$(agent_registry_pane_for_agent "$agent" "$pane_base" 2>/dev/null); then
+            cli=$(tmux show-options -p -t "$pane_target" -v @agent_cli 2>/dev/null || echo "")
+            busy_rc=1
+            agent_is_busy_check "$pane_target" "$cli" || busy_rc=$?
+            pane_text=$(timeout 2 tmux capture-pane -t "$pane_target" -p 2>/dev/null || true)
+        fi
 
         while IFS= read -r level; do
             [ -n "$level" ] || continue

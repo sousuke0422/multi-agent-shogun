@@ -115,3 +115,57 @@ teardown() {
     [ "$status" -eq 0 ]
     [ -z "$output" ]
 }
+
+# ── L_pane: pane 不在検知 ──
+@test "T-STALE-011: L_pane fires on assigned+rc=2 with age>=2min (positive control)" {
+    local now assigned last
+    now=1000000
+    assigned=$((now - 300))   # 5min ago
+    last=$assigned
+
+    run stale_evaluate_levels assigned 2 "$assigned" "$last" "$now" ""
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"L_pane"* ]]
+}
+
+@test "T-STALE-012: L_pane does NOT fire on idle+rc=2 (negative control)" {
+    local now assigned last
+    now=1000000
+    assigned=$((now - 300))
+    last=$assigned
+
+    run stale_evaluate_levels idle 2 "$assigned" "$last" "$now" ""
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"L_pane"* ]]
+    [ -z "$output" ]
+}
+
+@test "T-STALE-013: L_pane does NOT fire on assigned+rc=0 busy (negative control)" {
+    local now assigned last pane_text
+    now=1000000
+    assigned=$((now - 300))
+    last=$assigned
+    pane_text="Unable to reach the model provider"
+
+    run stale_evaluate_levels assigned 0 "$assigned" "$last" "$now" "$pane_text"
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"L_pane"* ]]
+    [ -z "$output" ]
+}
+
+@test "T-STALE-014: registry empty/missing falls back to all agents (fail-closed)" {
+    local missing="$TEST_TMP/no_settings.yaml"
+    local empty="$TEST_TMP/empty_settings.yaml"
+    local result expected
+
+    touch "$empty"
+    expected=$(stale_fallback_target_agents | sort | tr '\n' ' ')
+    result=$(stale_resolve_scan_targets "$missing" | sort | tr '\n' ' ')
+    [ "$result" = "$expected" ]
+
+    result=$(stale_resolve_scan_targets "$empty" | sort | tr '\n' ' ')
+    [ "$result" = "$expected" ]
+
+    # 9 agents: ashigaru1-7 + gunshi + karo
+    [ "$(stale_resolve_scan_targets "$missing" | wc -l)" -eq 9 ]
+}

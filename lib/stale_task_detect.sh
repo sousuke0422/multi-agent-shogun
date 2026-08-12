@@ -7,6 +7,8 @@
 # | L0 死署名（既知文字列当てはめ） | assigned≥2min + 署名一致 → agent_stale 通知（補助・速報） | 新しい壊れ方は未知の文字列。一覧に無ければ原理的に取りこぼす |
 # | L1 沈黙（30min、本命） | 最終活動が L1 窓外 + assigned → agent_stale 通知 | busy ならスキップ。直近30分以内に活動があればスキップ（fail-closed） |
 # | L2 再通知（90min） | L1 以降も沈黙継続 → 同一 task で L2 を一度通知 | L1 未通知なら L2 単独では出さない（段階通知） |
+# | L_pane（pane 不在） | assigned≥2min + busy_rc=2 → agent_stale 通知（死署名不要） | busy_rc=0 はスキップ。pane 消失を黙殺しない |
+# | registry 絞り自身の失敗 | 無し/読めぬ/空 → 全エージェント（ashigaru1-7/gunshi/karo）へ fallback | 対象ゼロで黙って通るな（fail-open 禁止） |
 # | report が assigned_at 以降に存在 | スキップ条件に「使わない」 | assigned_at 以降 1 回報告しただけでは永久免除にならない（fail-open 禁止） |
 # | 家老が対象 | 将軍 inbox（夜間特例: type=agent_stale from=watcher） | 通常の家老→将軍 inbox 禁止の例外経路 |
 # | 他エージェントが対象 | 家老 inbox | — |
@@ -108,7 +110,7 @@ stale_record_notification() {
 
 # stale_evaluate_levels <status> <busy_rc> <assigned_epoch> <last_activity_epoch> <now_epoch> <pane_text>
 # busy_rc: 0=busy, 1=idle, 2=pane absent
-# 出力: 発火すべきレベル（L0 / L1 / L2）を1行ずつ。該当なしなら無出力。
+# 出力: 発火すべきレベル（L0 / L1 / L2 / L_pane）を1行ずつ。該当なしなら無出力。
 stale_evaluate_levels() {
     local status="$1"
     local busy_rc="$2"
@@ -118,11 +120,21 @@ stale_evaluate_levels() {
     local pane_text="$6"
 
     [ "$status" = "assigned" ] || return 0
-    # busy または pane 不在は対象外
-    [ "$busy_rc" -eq 1 ] || return 0
 
     local assigned_age silence
     assigned_age=$(( now_epoch - assigned_epoch ))
+
+    # busy（稼働中）は全レベル対象外
+    [ "$busy_rc" -eq 0 ] && return 0
+
+    # pane 不在: L_pane のみ（死署名不要・2min 以上 assigned）
+    if [ "$busy_rc" -eq 2 ]; then
+        if [ "$assigned_age" -ge "$STALE_L0_MIN_ASSIGNED_SEC" ]; then
+            echo L_pane
+        fi
+        return 0
+    fi
+
     silence=$(stale_silence_seconds "$last_activity_epoch" "$now_epoch")
 
     # L0: 死署名（補助・2min 以上 assigned）
@@ -145,10 +157,95 @@ stale_evaluate_levels() {
     fi
 }
 
-stale_scan_target_agents() {
+stale_fallback_target_agents() {
     printf '%s\n' \
         ashigaru1 ashigaru2 ashigaru3 ashigaru4 ashigaru5 ashigaru6 ashigaru7 \
         gunshi karo
+}
+
+stale_read_registry_agents_from_settings() {
+    local settings="${1:-}"
+    [ -f "$settings" ] || return 0
+    [ -r "$settings" ] || return 1
+
+    awk '
+        /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
+
+        /^cli:[[:space:]]*$/ {
+            in_cli = 1
+            in_agents = 0
+            next
+        }
+
+        in_cli && /^[^[:space:]]/ {
+            in_cli = 0
+            in_agents = 0
+        }
+
+        in_cli && /^[[:space:]]{2}agents:[[:space:]]*$/ {
+            in_agents = 1
+            next
+        }
+
+        in_agents {
+            if ($0 !~ /^[[:space:]]{4}/) {
+                exit
+            }
+            if ($0 ~ /^[[:space:]]{4}[A-Za-z0-9_-]+:[[:space:]]*/) {
+                line = $0
+                sub(/^[[:space:]]*/, "", line)
+                sub(/:.*/, "", line)
+                print line
+            }
+        }
+    ' "$settings"
+}
+
+stale_registry_is_usable() {
+    local settings="${1:-}"
+    local agents=() agent
+
+    [ -f "$settings" ] || return 1
+    [ -r "$settings" ] || return 1
+
+    while IFS= read -r agent; do
+        [ -n "$agent" ] && agents+=("$agent")
+    done < <(stale_read_registry_agents_from_settings "$settings")
+
+    [ "${#agents[@]}" -gt 0 ] || return 1
+
+    for agent in "${agents[@]}"; do
+        [ "$agent" = "karo" ] && return 0
+    done
+    return 1
+}
+
+# stale_resolve_scan_targets <settings_path>
+# registry が使えるときは布陣内エージェントのみ。無し/読めぬ/空なら全エージェントへ fallback（決して空を返さない）。
+stale_resolve_scan_targets() {
+    local settings="${1:-}"
+    local agents=() agent count=0
+
+    if stale_registry_is_usable "$settings"; then
+        while IFS= read -r agent; do
+            [ "$agent" = "shogun" ] && continue
+            [ -n "$agent" ] || continue
+            agents+=("$agent")
+            count=$((count + 1))
+        done < <(stale_read_registry_agents_from_settings "$settings")
+        if [ "$count" -gt 0 ]; then
+            printf '%s\n' "${agents[@]}"
+            return 0
+        fi
+    fi
+
+    stale_fallback_target_agents
+}
+
+stale_scan_target_agents() {
+    local root
+    root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+    stale_resolve_scan_targets "${STALE_SETTINGS_FILE:-$root/config/settings.yaml}"
 }
 
 stale_read_task_field() {
