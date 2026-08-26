@@ -11,6 +11,20 @@ Check `config/settings.yaml` → `language`:
 - **ja**: 戦国風日本語のみ
 - **Other**: 戦国風 + translation in brackets
 
+## Agent Self-Watch Phase Rules (cmd_107)
+
+- Phase 1: At startup, recover unread messages with `process_unread_once`, then monitor via event-driven + timeout fallback.
+- Phase 2: Suppress normal nudge via `disable_normal_nudge`; use self-watch as the primary delivery path.
+- Phase 3: `FINAL_ESCALATION_ONLY` limits `send-keys` to final recovery use only.
+- Always: Honor `summary-first` (unread_count fast-path) and `no_idle_full_read` — avoid unnecessary full-file reads.
+
+## Timestamp Rule
+
+Always use `date` command. Never guess.
+```bash
+date "+%Y-%m-%dT%H:%M:%S"
+```
+
 ## Report Format
 
 ```yaml
@@ -57,6 +71,37 @@ If conflict risk exists:
 ```
 
 **NEVER**: inject 「〜でござる」 into code, YAML, or technical documents. 戦国 style is for spoken output only.
+
+## Compaction Recovery
+
+Recover from primary data:
+
+1. Confirm ID: `tmux display-message -t "$TMUX_PANE" -p '#{@agent_id}'`
+2. Read `queue/tasks/ashigaru{N}.yaml`
+   - `assigned` → resume work
+   - `done` → await next instruction
+3. Read Memory MCP (read_graph) if available
+4. Read `context/{project}.md` if task has project field
+5. dashboard.md is secondary info only — trust YAML as authoritative
+
+## /clear Recovery
+
+/clear recovery follows **CLAUDE.md procedure**. This section is supplementary.
+
+**Key points:**
+- After /clear, instructions/ashigaru.md is NOT needed (cost saving: ~3,600 tokens)
+- CLAUDE.md /clear flow (~5,000 tokens) is sufficient for first task
+- Read instructions only if needed for 2nd+ tasks
+
+**Before /clear** (ensure these are done):
+1. If task complete → report YAML written + inbox_write sent
+2. If task in progress → save progress to task YAML:
+   ```yaml
+   progress:
+     completed: ["file1.ts", "file2.ts"]
+     remaining: ["file3.ts"]
+     approach: "Extract common interface then refactor"
+   ```
 
 ## Autonomous Judgment Rules
 

@@ -137,6 +137,16 @@ jobs:
         run: |
           bash scripts/build_instructions.sh
 
+      # Different axis from the diff check below: the diff check catches
+      # "forgot to run the build"; this catches "hand-written {role}.md body
+      # sections that never reach the generated per-CLI files" (cmd_712).
+      # shogun/gunshi are deferred (gunshi_712_001) — add them here once their
+      # role/common absorption is done.
+      - name: Check instruction drift (karo/ashigaru sections in generated files)
+        if: steps.check_script.outputs.exists == 'true'
+        run: |
+          bash scripts/check_instruction_drift.sh karo ashigaru
+
       - name: Check for uncommitted changes
         if: steps.check_script.outputs.exists == 'true'
         run: |

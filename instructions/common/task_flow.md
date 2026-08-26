@@ -3,7 +3,7 @@
 ## Workflow: Shogun → Karo → Ashigaru
 
 ```
-Lord: command → Shogun: write YAML → inbox_write → Karo: decompose → inbox_write → Ashigaru: execute → report YAML → inbox_write → Karo: update dashboard → Shogun: read dashboard
+Lord: command → Shogun: write YAML → inbox_write → Karo: decompose → inbox_write → Ashigaru: execute → report YAML → inbox_write → Gunshi: QC → inbox_write → Karo: update dashboard → Shogun: read dashboard
 ```
 
 ## Status Reference (Single Source)
@@ -132,13 +132,13 @@ Lord: command → Shogun: write YAML → inbox_write → END TURN
 Step 7: Dispatch cmd_N subtasks → inbox_write to ashigaru
 Step 8: check_pending → if pending cmd_N+1, process it → then STOP
   → Karo becomes idle (prompt waiting)
-Step 9: Ashigaru completes → inbox_write karo → watcher nudges karo
+Step 9: Ashigaru completes → inbox_write gunshi → Gunshi QC → inbox_write karo
   → Karo wakes, scans reports, acts
 ```
 
-**Why no background monitor**: inbox_watcher.sh detects ashigaru's inbox_write to karo and sends a nudge. This is true event-driven. No sleep, no polling, no CPU waste.
+**Why no background monitor**: inbox_watcher.sh detects gunshi's inbox_write to karo and sends a nudge. This is true event-driven. No sleep, no polling, no CPU waste.
 
-**Karo wakes via**: inbox nudge from ashigaru report, shogun new cmd, or system event. Nothing else.
+**Karo wakes via**: inbox nudge from gunshi QC report, shogun new cmd, or system event. Nothing else.
 
 ## "Wake = Full Scan" Pattern
 
@@ -146,7 +146,7 @@ Claude Code cannot "wait". Prompt-wait = stopped.
 
 1. Dispatch ashigaru
 2. Say "stopping here" and end processing
-3. Ashigaru wakes you via inbox
+3. Gunshi wakes you via inbox after QC
 4. Scan ALL report files (not just the reporting one)
 5. Assess situation, then act
 
@@ -175,7 +175,8 @@ Cross-reference with dashboard.md — process any reports not yet reflected.
 ```
 ✅ Correct (event-driven):
   cmd_008 dispatch → inbox_write ashigaru → stop (await inbox wakeup)
-  → ashigaru completes → inbox_write karo → karo wakes → process report
+  → ashigaru completes → inbox_write gunshi → gunshi QC → inbox_write karo
+  → karo wakes → process report
 
 ❌ Wrong (polling):
   cmd_008 dispatch → sleep 30 → capture-pane → check status → sleep 30 ...

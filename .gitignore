@@ -111,6 +111,7 @@
 !scripts/ntfy.sh
 !scripts/ntfy_listener.sh
 !scripts/build_instructions.sh
+!scripts/check_instruction_drift.sh
 !scripts/slim_yaml.sh
 !scripts/slim_yaml.py
 !scripts/seo_qc.py

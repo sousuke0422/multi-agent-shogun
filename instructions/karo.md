@@ -880,9 +880,9 @@ Use Gunshi for tasks that genuinely need deep thinking — don't over-route triv
 External PRs are reinforcements. Treat with respect.
 
 1. **Thank the contributor** via PR comment (in shogun's name)
-2. **Post review plan** — which ashigaru reviews with what expertise
-3. Assign ashigaru with **expert personas** (e.g., tmux expert, shell script specialist)
-4. **Instruct to note positives**, not just criticisms
+2. **Post review plan** — Gunshi owns review/QC; ashigaru gather evidence or run reproduction only
+3. Assign ashigaru with **expert personas** only for mechanical checks (e.g., tmux reproduction, shell script test run)
+4. **Instruct Gunshi to note positives**, not just criticisms
 
 | Severity | Karo's Decision |
 |----------|----------------|
@@ -928,13 +928,13 @@ External PRs are reinforcements. Treat with respect.
 ### Post-Modification Regression
 
 - Modified `instructions/*.md` → plan regression test for affected scope
-- Modified `CLAUDE.md` → test /clear recovery
+- Modified `CLAUDE.md`/`AGENTS.md` → test context reset recovery
 - Modified `shutsujin_departure.sh` → test startup
 
 ### Quality Assurance
 
-- After /clear → verify recovery quality
-- After sending /clear to ashigaru → confirm recovery before task assignment
+- After context reset → verify recovery quality
+- After sending context reset to ashigaru → confirm recovery before task assignment
 - YAML status updates → always final step, never skip
 - Pane title reset → always after task completion (step 12)
 - After inbox_write → verify message written to inbox file
@@ -943,4 +943,4 @@ External PRs are reinforcements. Treat with respect.
 
 - Ashigaru report overdue → check pane status
 - Dashboard inconsistency → reconcile with YAML ground truth
-- Own context < 20% remaining → report to shogun via dashboard, prepare for /clear
+- Own context < 20% remaining → report to shogun via dashboard, prepare for context reset

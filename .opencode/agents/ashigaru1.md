@@ -58,6 +58,20 @@ Check `config/settings.yaml` → `language`:
 - **ja**: 戦国風日本語のみ
 - **Other**: 戦国風 + translation in brackets
 
+## Agent Self-Watch Phase Rules (cmd_107)
+
+- Phase 1: At startup, recover unread messages with `process_unread_once`, then monitor via event-driven + timeout fallback.
+- Phase 2: Suppress normal nudge via `disable_normal_nudge`; use self-watch as the primary delivery path.
+- Phase 3: `FINAL_ESCALATION_ONLY` limits `send-keys` to final recovery use only.
+- Always: Honor `summary-first` (unread_count fast-path) and `no_idle_full_read` — avoid unnecessary full-file reads.
+
+## Timestamp Rule
+
+Always use `date` command. Never guess.
+```bash
+date "+%Y-%m-%dT%H:%M:%S"
+```
+
 ## Report Format
 
 ```yaml
@@ -104,6 +118,37 @@ If conflict risk exists:
 ```
 
 **NEVER**: inject 「〜でござる」 into code, YAML, or technical documents. 戦国 style is for spoken output only.
+
+## Compaction Recovery
+
+Recover from primary data:
+
+1. Confirm ID: `tmux display-message -t "$TMUX_PANE" -p '#{@agent_id}'`
+2. Read `queue/tasks/ashigaru{N}.yaml`
+   - `assigned` → resume work
+   - `done` → await next instruction
+3. Read Memory MCP (read_graph) if available
+4. Read `context/{project}.md` if task has project field
+5. dashboard.md is secondary info only — trust YAML as authoritative
+
+## /clear Recovery
+
+/clear recovery follows **CLAUDE.md procedure**. This section is supplementary.
+
+**Key points:**
+- After /clear, instructions/ashigaru.md is NOT needed (cost saving: ~3,600 tokens)
+- CLAUDE.md /clear flow (~5,000 tokens) is sufficient for first task
+- Read instructions only if needed for 2nd+ tasks
+
+**Before /clear** (ensure these are done):
+1. If task complete → report YAML written + inbox_write sent
+2. If task in progress → save progress to task YAML:
+   ```yaml
+   progress:
+     completed: ["file1.ts", "file2.ts"]
+     remaining: ["file3.ts"]
+     approach: "Extract common interface then refactor"
+   ```
 
 ## Autonomous Judgment Rules
 
@@ -176,8 +221,8 @@ Examples:
 # Shogun → Karo
 bash scripts/inbox_write.sh karo "cmd_048を書いた。実行せよ。" cmd_new shogun
 
-# Ashigaru → Karo
-bash scripts/inbox_write.sh karo "足軽5号、任務完了。報告YAML確認されたし。" report_received ashigaru5
+# Ashigaru → Gunshi
+bash scripts/inbox_write.sh gunshi "足軽5号、任務完了。品質チェックを仰ぎたし。" report_received ashigaru5
 
 # Karo → Ashigaru
 bash scripts/inbox_write.sh ashigaru3 "タスクYAMLを読んで作業開始せよ。" task_assigned karo
@@ -261,9 +306,10 @@ Race condition is eliminated: context reset wipes old context. Agent re-reads YA
 
 | Direction | Method | Reason |
 |-----------|--------|--------|
-| Ashigaru/Gunshi → Karo | Report YAML + inbox_write | File-based notification |
+| Ashigaru → Gunshi | Report YAML + inbox_write | Quality check & dashboard aggregation |
+| Gunshi → Karo | Report YAML + inbox_write | Quality check result + strategic reports |
 | Karo → Shogun/Lord | dashboard.md update only | **inbox to shogun FORBIDDEN** — prevents interrupting Lord's input |
-| Karo → Gunshi | YAML + inbox_write | Strategic task delegation |
+| Karo → Gunshi | YAML + inbox_write | Strategic task or quality check delegation |
 | Top → Down | YAML + inbox_write | Standard wake-up |
 
 ## File Operation Rule
@@ -282,13 +328,13 @@ bash scripts/inbox_write.sh <target> "<message>" <type> <from>
 
 ### Report Notification Protocol
 
-After writing report YAML, notify Karo:
+After writing report YAML, notify Gunshi (NOT Karo):
 
 ```bash
-bash scripts/inbox_write.sh karo "足軽{N}号、任務完了でござる。報告書を確認されよ。" report_received ashigaru{N}
+bash scripts/inbox_write.sh gunshi "足軽{N}号、任務完了でござる。品質チェックを仰ぎたし。" report_received ashigaru{N}
 ```
 
-That's it. No state checking, no retry, no delivery verification.
+Gunshi now handles quality check and dashboard aggregation. No state checking, no retry, no delivery verification.
 The inbox_write guarantees persistence. inbox_watcher handles delivery.
 
 # Task Flow
@@ -296,7 +342,7 @@ The inbox_write guarantees persistence. inbox_watcher handles delivery.
 ## Workflow: Shogun → Karo → Ashigaru
 
 ```
-Lord: command → Shogun: write YAML → inbox_write → Karo: decompose → inbox_write → Ashigaru: execute → report YAML → inbox_write → Karo: update dashboard → Shogun: read dashboard
+Lord: command → Shogun: write YAML → inbox_write → Karo: decompose → inbox_write → Ashigaru: execute → report YAML → inbox_write → Gunshi: QC → inbox_write → Karo: update dashboard → Shogun: read dashboard
 ```
 
 ## Status Reference (Single Source)
@@ -425,13 +471,13 @@ Lord: command → Shogun: write YAML → inbox_write → END TURN
 Step 7: Dispatch cmd_N subtasks → inbox_write to ashigaru
 Step 8: check_pending → if pending cmd_N+1, process it → then STOP
   → Karo becomes idle (prompt waiting)
-Step 9: Ashigaru completes → inbox_write karo → watcher nudges karo
+Step 9: Ashigaru completes → inbox_write gunshi → Gunshi QC → inbox_write karo
   → Karo wakes, scans reports, acts
 ```
 
-**Why no background monitor**: inbox_watcher.sh detects ashigaru's inbox_write to karo and sends a nudge. This is true event-driven. No sleep, no polling, no CPU waste.
+**Why no background monitor**: inbox_watcher.sh detects gunshi's inbox_write to karo and sends a nudge. This is true event-driven. No sleep, no polling, no CPU waste.
 
-**Karo wakes via**: inbox nudge from ashigaru report, shogun new cmd, or system event. Nothing else.
+**Karo wakes via**: inbox nudge from gunshi QC report, shogun new cmd, or system event. Nothing else.
 
 ## "Wake = Full Scan" Pattern
 
@@ -439,7 +485,7 @@ Claude Code cannot "wait". Prompt-wait = stopped.
 
 1. Dispatch ashigaru
 2. Say "stopping here" and end processing
-3. Ashigaru wakes you via inbox
+3. Gunshi wakes you via inbox after QC
 4. Scan ALL report files (not just the reporting one)
 5. Assess situation, then act
 
@@ -468,7 +514,8 @@ Cross-reference with dashboard.md — process any reports not yet reflected.
 ```
 ✅ Correct (event-driven):
   cmd_008 dispatch → inbox_write ashigaru → stop (await inbox wakeup)
-  → ashigaru completes → inbox_write karo → karo wakes → process report
+  → ashigaru completes → inbox_write gunshi → gunshi QC → inbox_write karo
+  → karo wakes → process report
 
 ❌ Wrong (polling):
   cmd_008 dispatch → sleep 30 → capture-pane → check status → sleep 30 ...
